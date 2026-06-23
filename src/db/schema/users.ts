@@ -1,44 +1,45 @@
 /**
- * Schema de usuarios y sesiones
- * Diseñado para ser compatible con cualquier ORM/query-builder (se exportan
- * las definiciones como objetos planos para que el adaptador de BD las consuma).
+ * Schema de usuarios y sesiones.
+ * Usa tipos compatibles con cualquier ORM ligero o query-builder SQL.
  */
 
 export interface UserRecord {
   id: string;           // UUID v4
-  email: string;        // único, lower-cased
+  email: string;        // único, índice único
   passwordHash: string; // bcrypt hash
   displayName: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;    // ISO-8601
+  updatedAt: string;    // ISO-8601
 }
 
 export interface SessionRecord {
   id: string;        // UUID v4
   userId: string;    // FK → users.id
-  token: string;     // JWT opaco almacenado para revocación
-  expiresAt: Date;
-  createdAt: Date;
+  token: string;     // JWT opaco almacenado (refresh token)
+  expiresAt: string; // ISO-8601
+  createdAt: string; // ISO-8601
+  revokedAt: string | null;
 }
 
-/** SQL DDL de referencia (PostgreSQL / SQLite compatible) */
-export const USER_TABLE_DDL = `
+/** DDL de referencia (SQLite / PostgreSQL compatible) */
+export const CREATE_USERS_TABLE = `
 CREATE TABLE IF NOT EXISTS users (
   id           TEXT        PRIMARY KEY,
   email        TEXT        NOT NULL UNIQUE,
-  password_hash TEXT       NOT NULL,
-  display_name TEXT        NOT NULL,
-  created_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP
+  passwordHash TEXT        NOT NULL,
+  displayName  TEXT        NOT NULL DEFAULT '',
+  createdAt    TEXT        NOT NULL,
+  updatedAt    TEXT        NOT NULL
 );
 `;
 
-export const SESSION_TABLE_DDL = `
+export const CREATE_SESSIONS_TABLE = `
 CREATE TABLE IF NOT EXISTS sessions (
-  id         TEXT     PRIMARY KEY,
-  user_id    TEXT     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token      TEXT     NOT NULL UNIQUE,
-  expires_at DATETIME NOT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  id        TEXT     PRIMARY KEY,
+  userId    TEXT     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token     TEXT     NOT NULL,
+  expiresAt TEXT     NOT NULL,
+  createdAt TEXT     NOT NULL,
+  revokedAt TEXT     DEFAULT NULL
 );
 `;
